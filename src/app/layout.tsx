@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import CoachChat from "@/components/CoachChat";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "Fitness Coach",
@@ -16,6 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen bg-surface text-slate-200 antialiased">
+        <Providers>
         {/* Header */}
         <header className="border-b border-surface-border bg-surface-card/60 backdrop-blur sticky top-0 z-30">
           <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -50,6 +52,7 @@ export default function RootLayout({
         </footer>
 
         <CoachChat />
+        </Providers>
       </body>
     </html>
   );

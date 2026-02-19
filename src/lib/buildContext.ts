@@ -1,13 +1,13 @@
-import { readMarkdown, readLog, fileExists, findActivePlanFile } from "./data";
+import { getUserData } from "./data";
 import { extractTodaySection } from "./parsePlan";
-import { ATHLETE_PROFILE as PROFILE } from "./userConfig";
 
 /**
  * Returns a tiered log summary:
  * - Last 14 days: full detail per set
  * - Older entries: one line per session (date + session name + key lifts/distances)
  */
-function recentLogSummary(n = 40): string {
+function recentLogSummary(userId: string, n = 40): string {
+  const { readLog } = getUserData(userId);
   const entries = readLog();
   if (!entries.length) return "No entries logged yet.";
 
@@ -73,9 +73,10 @@ function recentLogSummary(n = 40): string {
  * Builds the full system prompt for the AI coach.
  * Includes profile, recent log, today's plan, and progression rules.
  */
-function sessionNotesSummary(): string {
-  if (!fileExists("coach/session-notes.md")) return "";
-  const notes = readMarkdown("coach/session-notes.md");
+function sessionNotesSummary(userId: string): string {
+  const db = getUserData(userId);
+  if (!db.fileExists("coach/session-notes.md")) return "";
+  const notes = db.readMarkdown("coach/session-notes.md");
   // Strip the header comment, keep only note entries
   const content = notes.replace(/^#[^\n]*\n[^\n]*\n/, "").trim();
   if (!content) return "";
@@ -83,18 +84,22 @@ function sessionNotesSummary(): string {
   return content.length > 3000 ? content.slice(-3000) : content;
 }
 
-export function buildCoachSystemPrompt(today: Date): string {
-  const planFile = findActivePlanFile(today);
-  const planMd = readMarkdown(planFile);
-  const progressionMd = readMarkdown("coach/progression.md");
+export function buildCoachSystemPrompt(today: Date, userId: string): string {
+  const db = getUserData(userId);
+  const planFile = db.findActivePlanFile(today);
+  const planMd = db.readMarkdown(planFile);
+  const progressionMd = db.readMarkdown("coach/progression.md");
   const { heading, body, found } = extractTodaySection(planMd, today);
+
+  const profile = db.readUserProfile();
+  const PROFILE = profile?.athleteProfile ?? "(No profile set — ask the user to complete onboarding.)";
 
   const todayPlanSection = found
     ? `TODAY'S PLAN (${heading}):\n${body}`
     : "TODAY'S PLAN: Outside the current plan window.";
 
-  const logSummary = recentLogSummary(40);
-  const sessionNotes = sessionNotesSummary();
+  const logSummary = recentLogSummary(userId, 40);
+  const sessionNotes = sessionNotesSummary(userId);
   const notesSection = sessionNotes
     ? `\nCOACH SESSION NOTES (your memory of prior conversations):\n${sessionNotes}\n`
     : "";

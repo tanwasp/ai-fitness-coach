@@ -1,10 +1,14 @@
-import { readMarkdown } from "@/lib/data";
+import { getUserData } from "@/lib/data";
 import MarkdownRender from "@/components/MarkdownRender";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export default function PlanPage() {
-  const content = readMarkdown(
-    "coach/two-week-plan-2026-02-19_to_2026-03-04.md",
-  );
+export default async function PlanPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.userId) redirect("/login");
+  const db = getUserData(session.userId);
+  const content = db.readMarkdown(db.findActivePlanFile(new Date()));
   return (
     <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden">
       <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">

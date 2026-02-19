@@ -1,9 +1,4 @@
-import {
-  readMarkdown,
-  writeMarkdown,
-  fileExists,
-  findActivePlanFile,
-} from "./data";
+import { getUserData } from "./data";
 import { extractTodaySection } from "./parsePlan";
 
 // Re-use the same date-matching regex from parsePlan
@@ -50,8 +45,6 @@ export interface ActionResult {
   detail?: string;
 }
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
 const NOTES_FILE = "coach/session-notes.md";
 
 // ── Main executor ─────────────────────────────────────────────────────────────
@@ -59,16 +52,17 @@ const NOTES_FILE = "coach/session-notes.md";
 export function executeActions(
   actions: CoachAction[],
   today: Date,
+  userId: string,
 ): ActionResult[] {
   const results: ActionResult[] = [];
 
   for (const action of actions) {
     try {
       if (action.type === "save_note") {
-        appendNote(action.content, today);
+        appendNote(action.content, today, userId);
         results.push({ type: "save_note", success: true });
       } else if (action.type === "edit_plan_today") {
-        const ok = patchPlanToday(action.replacement, today);
+        const ok = patchPlanToday(action.replacement, today, userId);
         results.push({
           type: "edit_plan_today",
           success: ok,
@@ -89,26 +83,28 @@ export function executeActions(
 
 // ── Note appender ─────────────────────────────────────────────────────────────
 
-function appendNote(content: string, today: Date): void {
-  // Format: "2026-02-19 21:30"
+function appendNote(content: string, today: Date, userId: string): void {
+  const db = getUserData(userId);
   const ts = today.toISOString().replace("T", " ").slice(0, 16);
   const entry = `\n## ${ts}\n${content.trim()}\n`;
 
-  if (!fileExists(NOTES_FILE)) {
-    writeMarkdown(
+  if (!db.fileExists(NOTES_FILE)) {
+    db.writeMarkdown(
       NOTES_FILE,
       `# Coach Session Notes\n<!-- Auto-appended by AI coach. Do not edit manually. -->\n${entry}`,
     );
   } else {
-    writeMarkdown(NOTES_FILE, readMarkdown(NOTES_FILE) + entry);
+    db.writeMarkdown(NOTES_FILE, db.readMarkdown(NOTES_FILE) + entry);
   }
 }
 
 // ── Plan editor ───────────────────────────────────────────────────────────────
 
-function patchPlanToday(replacement: string, today: Date): boolean {
-  const planFile = findActivePlanFile(today);
-  const planMd = readMarkdown(planFile);
+function patchPlanToday(replacement: string, today: Date, userId: string): boolean {
+  const db = getUserData(userId);
+  const planFile = db.findActivePlanFile(today);
+  if (!planFile) return false;
+  const planMd = db.readMarkdown(planFile);
   const lines = planMd.split("\n");
 
   // Find today's heading line using date-based matching (immune to heading text changes)
@@ -151,6 +147,6 @@ function patchPlanToday(replacement: string, today: Date): boolean {
     ...lines.slice(end),
   ].join("\n");
 
-  writeMarkdown(planFile, newPlan);
+  db.writeMarkdown(planFile, newPlan);
   return true;
 }

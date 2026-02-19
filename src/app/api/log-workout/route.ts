@@ -1,5 +1,7 @@
 import { buildLogParserPrompt } from "@/lib/buildContext";
 import { z } from "zod";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -26,6 +28,11 @@ const EntrySchema = z.object({
 export type ParsedEntry = z.infer<typeof EntrySchema>;
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.userId) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   if (
     !process.env.PERPLEXITY_API_KEY ||
     process.env.PERPLEXITY_API_KEY === "your_key_here"

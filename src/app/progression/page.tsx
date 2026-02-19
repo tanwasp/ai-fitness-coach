@@ -1,7 +1,10 @@
-import { readMarkdown } from "@/lib/data";
+import { getUserData } from "@/lib/data";
 import ProgressionAccordion, {
   type ProgressionSection,
 } from "@/components/ProgressionAccordion";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 function parseProgressionSections(md: string): ProgressionSection[] {
   const lines = md.split("\n");
@@ -34,8 +37,10 @@ function parseProgressionSections(md: string): ProgressionSection[] {
   return sections;
 }
 
-export default function ProgressionPage() {
-  const content = readMarkdown("coach/progression.md");
+export default async function ProgressionPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.userId) redirect("/login");
+  const content = getUserData(session.userId).readMarkdown("coach/progression.md");
   const sections = parseProgressionSections(content);
 
   return (

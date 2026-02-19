@@ -1,10 +1,11 @@
-import { readLog, findActivePlanFile } from "@/lib/data";
-import { readMarkdown } from "@/lib/data";
+import { getUserData } from "@/lib/data";
 import { extractTodaySection } from "@/lib/parsePlan";
 import MarkdownRender from "@/components/MarkdownRender";
 import WorkoutLogger from "@/components/WorkoutLogger";
 import type { LogEntry } from "@/lib/data";
-import { DASHBOARD_GOALS } from "@/lib/userConfig";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -62,10 +63,17 @@ function SessionCard({ entry }: { entry: LogEntry }) {
   );
 }
 
-export default function TodayPage() {
+export default async function TodayPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.userId) redirect("/login");
+  const db = getUserData(session.userId);
+  if (!db.hasProfile()) redirect("/onboarding");
+
   const today = new Date();
-  const planMd = readMarkdown(findActivePlanFile(today));
-  const allEntries = readLog();
+  const planMd = db.readMarkdown(db.findActivePlanFile(today));
+  const allEntries = db.readLog();
+  const profile = db.readUserProfile()!;
+  const DASHBOARD_GOALS = profile.goals;
 
   const { heading, body, found } = extractTodaySection(planMd, today);
 

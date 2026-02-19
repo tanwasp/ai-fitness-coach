@@ -4,6 +4,8 @@ import {
   type CoachAction,
   type ActionResult,
 } from "@/lib/coachActions";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -29,6 +31,12 @@ function computeCost(
 }
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.userId) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.userId;
+
   if (
     !process.env.PERPLEXITY_API_KEY ||
     process.env.PERPLEXITY_API_KEY === "your_key_here"
@@ -44,7 +52,7 @@ export async function POST(req: Request) {
   };
 
   const today = new Date();
-  const systemPrompt = buildCoachSystemPrompt(today);
+  const systemPrompt = buildCoachSystemPrompt(today, userId);
   const model = process.env.PERPLEXITY_MODEL ?? "sonar-pro";
 
   const input = messages
@@ -120,7 +128,7 @@ export async function POST(req: Request) {
   reply = reply.trim();
 
   const actionResults: ActionResult[] =
-    actions.length > 0 ? executeActions(actions, today) : [];
+    actions.length > 0 ? executeActions(actions, today, userId) : [];
 
   if (actionResults.length > 0) {
     console.log("[coach] actions executed:", JSON.stringify(actionResults));

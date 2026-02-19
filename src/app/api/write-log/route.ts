@@ -1,10 +1,11 @@
 import fs from "fs";
 import path from "path";
 import Papa from "papaparse";
+import { getUserData } from "@/lib/data";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const runtime = "nodejs";
-
-const CSV_PATH = path.resolve(process.cwd(), "..", "training_log.csv");
 
 const CSV_HEADERS = [
   "date",
@@ -27,6 +28,11 @@ const CSV_HEADERS = [
 ] as const;
 
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.userId) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const CSV_PATH = getUserData(session.userId).getTrainingLogPath();
   const { entries } = await req.json();
 
   if (!Array.isArray(entries) || entries.length === 0) {

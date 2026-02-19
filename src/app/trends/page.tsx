@@ -1,8 +1,13 @@
-import { readLog } from "@/lib/data";
+import { getUserData } from "@/lib/data";
 import TrendsClient from "@/components/TrendsClient";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export default function TrendsPage() {
-  const entries = readLog();
+export default async function TrendsPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.userId) redirect("/login");
+  const entries = getUserData(session.userId).readLog();
   return (
     <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden">
       <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
