@@ -92,7 +92,9 @@ export function buildCoachSystemPrompt(today: Date, userId: string): string {
   const { heading, body, found } = extractTodaySection(planMd, today);
 
   const profile = db.readUserProfile();
-  const PROFILE = profile?.athleteProfile ?? "(No profile set — ask the user to complete onboarding.)";
+  const PROFILE =
+    profile?.athleteProfile ??
+    "(No profile set — ask the user to complete onboarding.)";
 
   const todayPlanSection = found
     ? `TODAY'S PLAN (${heading}):\n${body}`

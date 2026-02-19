@@ -100,7 +100,11 @@ function appendNote(content: string, today: Date, userId: string): void {
 
 // ── Plan editor ───────────────────────────────────────────────────────────────
 
-function patchPlanToday(replacement: string, today: Date, userId: string): boolean {
+function patchPlanToday(
+  replacement: string,
+  today: Date,
+  userId: string,
+): boolean {
   const db = getUserData(userId);
   const planFile = db.findActivePlanFile(today);
   if (!planFile) return false;

@@ -12,7 +12,10 @@ export async function POST(req: Request) {
   const { displayName, athleteProfile, goals } = await req.json();
 
   if (!displayName?.trim()) {
-    return NextResponse.json({ error: "displayName is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "displayName is required" },
+      { status: 400 },
+    );
   }
 
   const db = getUserData(session.userId);

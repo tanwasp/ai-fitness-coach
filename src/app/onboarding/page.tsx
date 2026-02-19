@@ -27,8 +27,14 @@ export default function OnboardingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  function updateGoal(i: number, field: keyof (typeof GOAL_TEMPLATES)[0], val: string) {
-    setGoals((prev) => prev.map((g, idx) => (idx === i ? { ...g, [field]: val } : g)));
+  function updateGoal(
+    i: number,
+    field: keyof (typeof GOAL_TEMPLATES)[0],
+    val: string,
+  ) {
+    setGoals((prev) =>
+      prev.map((g, idx) => (idx === i ? { ...g, [field]: val } : g)),
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -64,9 +70,12 @@ export default function OnboardingPage() {
 
   return (
     <div className="max-w-2xl mx-auto py-10">
-      <h1 className="text-2xl font-bold text-white mb-1">Welcome! Set up your profile</h1>
+      <h1 className="text-2xl font-bold text-white mb-1">
+        Welcome! Set up your profile
+      </h1>
       <p className="text-slate-400 text-sm mb-8">
-        This helps the coach understand who you are and personalize your training.
+        This helps the coach understand who you are and personalize your
+        training.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -87,7 +96,10 @@ export default function OnboardingPage() {
         {/* Athlete profile */}
         <div>
           <label className="block text-sm font-semibold text-slate-300 mb-1.5">
-            About you <span className="text-slate-500 font-normal">(fill in what&apos;s relevant)</span>
+            About you{" "}
+            <span className="text-slate-500 font-normal">
+              (fill in what&apos;s relevant)
+            </span>
           </label>
           <textarea
             rows={10}
@@ -100,7 +112,10 @@ export default function OnboardingPage() {
         {/* Goals */}
         <div>
           <label className="block text-sm font-semibold text-slate-300 mb-3">
-            Goals <span className="text-slate-500 font-normal">(optional — edit labels/numbers as needed)</span>
+            Goals{" "}
+            <span className="text-slate-500 font-normal">
+              (optional — edit labels/numbers as needed)
+            </span>
           </label>
           <div className="space-y-3">
             {goals.map((g, i) => (
@@ -128,7 +143,9 @@ export default function OnboardingPage() {
                 />
               </div>
             ))}
-            <p className="text-xs text-slate-600">Columns: Label / Current / Target</p>
+            <p className="text-xs text-slate-600">
+              Columns: Label / Current / Target
+            </p>
           </div>
         </div>
 

@@ -29,17 +29,17 @@ cd dashboard
 npm install
 ```
 
-The `personal/` folder inside `dashboard/` holds all your private data and is gitignored. Create it on a fresh clone:
+The `.local/` folder inside `dashboard/` holds all your private data and is gitignored. Create it on a fresh clone:
 
 ```bash
-mkdir -p personal/data
+mkdir -p .local/data
 ```
 
-Copy the env template to `personal/.env.local`, then symlink it so Next.js can find it at the project root:
+Copy the env template to `.local/.env.local`, then symlink it so Next.js can find it at the project root:
 
 ```bash
-cp .env.local.example personal/.env.local   # fill in your values
-ln -s personal/.env.local .env.local
+cp .env.local.example .local/.env.local   # fill in your values
+ln -s .local/.env.local .env.local
 ```
 
 Generate a `NEXTAUTH_SECRET`:
@@ -48,7 +48,7 @@ Generate a `NEXTAUTH_SECRET`:
 openssl rand -base64 32
 ```
 
-Set it in `personal/.env.local`:
+Set it in `.local/.env.local`:
 
 ```
 NEXTAUTH_SECRET=<your generated secret>
@@ -67,19 +67,20 @@ node scripts/add-user.js \
 ```
 
 This creates:
-- An entry in `data/users.json`
-- An empty `data/tanish/coach/` directory
+
+- An entry in `.local/data/users.json`
+- An empty `.local/data/tanish/coach/` directory
 
 ### Migrate existing data (if upgrading from single-user)
 
-If you had a flat layout at the parent `fitness/` directory, move your files into the new per-user structure inside `personal/`:
+If you had a flat layout at the parent `fitness/` directory, move your files into the new per-user structure inside `.local/`:
 
 ```bash
-mkdir -p personal/data/tanish/coach
-cp ../training_log.csv personal/data/tanish/training_log.csv
-cp ../coach/session-notes.md personal/data/tanish/coach/session-notes.md
+mkdir -p .local/data/tanish/coach
+cp ../training_log.csv .local/data/tanish/training_log.csv
+cp ../coach/session-notes.md .local/data/tanish/coach/session-notes.md
 # copy any plan files:
-cp ../coach/plan-*.md personal/data/tanish/coach/
+cp ../coach/plan-*.md .local/data/tanish/coach/
 ```
 
 ### Run
@@ -94,13 +95,12 @@ Open [http://localhost:3000](http://localhost:3000). You'll be redirected to `/l
 
 ## Data Layout
 
-All user-specific files live in `dashboard/personal/` — this folder is **gitignored** and never committed.
+All user-specific files live in `dashboard/.local/` — this folder is **gitignored** and never committed.
 
 ```
 dashboard/
-  personal/                     # gitignored — your private data
+  .local/                     # gitignored — your private data
     .env.local                  # API keys and secrets (symlinked to .env.local at root)
-    userConfig.ts               # optional local overrides
     data/
       users.json                # user accounts (hashed passwords)
       {userId}/
@@ -113,16 +113,16 @@ dashboard/
 
 ### `training_log.csv` schema
 
-| Column | Description |
-|---|---|
-| `date` | ISO date `YYYY-MM-DD` |
-| `activity` | Exercise name (e.g. `Bench Press`) |
-| `sets` | Number of sets |
-| `reps` | Reps per set (or total) |
-| `weight_kg` | Load in kg |
-| `rpe` | Rate of perceived exertion (1–10) |
+| Column         | Description                              |
+| -------------- | ---------------------------------------- |
+| `date`         | ISO date `YYYY-MM-DD`                    |
+| `activity`     | Exercise name (e.g. `Bench Press`)       |
+| `sets`         | Number of sets                           |
+| `reps`         | Reps per set (or total)                  |
+| `weight_kg`    | Load in kg                               |
+| `rpe`          | Rate of perceived exertion (1–10)        |
 | `duration_min` | Duration in minutes (cardio / accessory) |
-| `notes` | Free-text notes |
+| `notes`        | Free-text notes                          |
 
 ---
 
@@ -170,18 +170,21 @@ node scripts/add-user.js --id alice --name "Alice" --email "alice@example.com" -
 Cloudflare Tunnel lets your Pi serve traffic on a public domain without opening router ports.
 
 1. Install `cloudflared` on the Pi:
+
    ```bash
    curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64 -o /usr/local/bin/cloudflared
    chmod +x /usr/local/bin/cloudflared
    ```
 
 2. Authenticate and create a tunnel:
+
    ```bash
    cloudflared tunnel login
    cloudflared tunnel create fitness
    ```
 
 3. Create `~/.cloudflared/config.yml`:
+
    ```yaml
    tunnel: <tunnel-id>
    credentials-file: /home/pi/.cloudflared/<tunnel-id>.json
@@ -192,6 +195,7 @@ Cloudflare Tunnel lets your Pi serve traffic on a public domain without opening 
    ```
 
 4. Route DNS and run:
+
    ```bash
    cloudflared tunnel route dns fitness yourdomain.com
    cloudflared tunnel run fitness
@@ -210,13 +214,13 @@ Don't forget to set `NEXTAUTH_URL=https://yourdomain.com` in your `.env`.
 
 ## Environment Variables Reference
 
-| Variable | Required | Description |
-|---|---|---|
-| `NEXTAUTH_SECRET` | Yes | Random 32-byte secret for JWT signing. Generate: `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | Yes | Full public URL of the app (`http://localhost:3000` locally, `https://yourdomain.com` in prod) |
-| `PERPLEXITY_API_KEY` | Yes | API key from perplexity.ai |
-| `PERPLEXITY_MODEL` | No | Model name (default: `sonar-pro`) |
-| `DATA_DIR` | No | Absolute path to data directory (default: `../data` relative to `dashboard/`) |
+| Variable             | Required | Description                                                                                    |
+| -------------------- | -------- | ---------------------------------------------------------------------------------------------- |
+| `NEXTAUTH_SECRET`    | Yes      | Random 32-byte secret for JWT signing. Generate: `openssl rand -base64 32`                     |
+| `NEXTAUTH_URL`       | Yes      | Full public URL of the app (`http://localhost:3000` locally, `https://yourdomain.com` in prod) |
+| `PERPLEXITY_API_KEY` | Yes      | API key from perplexity.ai                                                                     |
+| `PERPLEXITY_MODEL`   | No       | Model name (default: `sonar-pro`)                                                              |
+| `DATA_DIR`           | No       | Absolute path to data directory (default: `../data` relative to `dashboard/`)                  |
 
 ---
 

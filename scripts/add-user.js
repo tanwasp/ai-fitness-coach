@@ -18,7 +18,7 @@ const crypto = require("crypto");
 
 // -- resolve DATA_DIR ---------------------------------------------------------
 const DATA_DIR =
-  process.env.DATA_DIR ?? path.resolve(__dirname, "..", "personal", "data");
+  process.env.DATA_DIR ?? path.resolve(__dirname, "..", ".local", "data");
 
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 
@@ -36,7 +36,7 @@ const password = getArg("--password");
 
 if (!name || !email || !password) {
   console.error(
-    "Usage: node scripts/add-user.js --name \"Name\" --email email@example.com --password secret [--id custom-id]"
+    'Usage: node scripts/add-user.js --name "Name" --email email@example.com --password secret [--id custom-id]',
   );
   process.exit(1);
 }
@@ -49,7 +49,9 @@ if (fs.existsSync(USERS_FILE)) {
   try {
     users = JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
   } catch {
-    console.warn("Warning: could not parse existing users.json — starting fresh.");
+    console.warn(
+      "Warning: could not parse existing users.json — starting fresh.",
+    );
     users = [];
   }
 }
@@ -60,7 +62,9 @@ if (users.some((u) => u.email === email)) {
   process.exit(1);
 }
 if (users.some((u) => u.id === id)) {
-  console.error(`Error: a user with id "${id}" already exists. Choose a different --id.`);
+  console.error(
+    `Error: a user with id "${id}" already exists. Choose a different --id.`,
+  );
   process.exit(1);
 }
 

@@ -43,7 +43,9 @@ export default function Nav() {
         <div className="flex items-center justify-end gap-3 mt-2">
           <span className="text-xs text-slate-500">
             Signed in as{" "}
-            <span className="text-slate-300 font-medium">{session.userName}</span>
+            <span className="text-slate-300 font-medium">
+              {session.userName}
+            </span>
           </span>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}

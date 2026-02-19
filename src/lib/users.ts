@@ -7,7 +7,7 @@ import path from "path";
 import bcrypt from "bcryptjs";
 
 export const BASE_DATA_ROOT =
-  process.env.DATA_DIR ?? path.resolve(process.cwd(), "personal", "data");
+  process.env.DATA_DIR ?? path.resolve(process.cwd(), ".local", "data");
 
 const USERS_FILE = path.join(BASE_DATA_ROOT, "users.json");
 

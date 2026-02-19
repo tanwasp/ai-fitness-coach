@@ -5,11 +5,11 @@ node_modules/
 .next/
 out/
 
-# ── Personal folder (env vars, data, private config) ─────────────────────────
-# personal/ is never committed. See personal/ for .env.local, data/, userConfig.ts
-personal/
+# ── .local/ folder (env vars, data, private config) ─────────────────────────
+# .local/ is never committed. Contains .env.local, data/
+.local/
 
-# .env.local is a symlink → personal/.env.local; keep both patterns ignored
+# .env.local is a symlink → .local/.env.local; keep both patterns ignored
 .env
 .env.local
 .env.*.local
