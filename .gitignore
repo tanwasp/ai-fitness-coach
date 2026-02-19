@@ -1,0 +1,20 @@
+# ── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Next.js build output ──────────────────────────────────────────────────────
+.next/
+out/
+
+# ── Environment variables (API keys, secrets) ─────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Personal config (profile, goals — copy from userConfig.example.ts) ────────
+src/lib/userConfig.ts
+
+# ── macOS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+
+# ── Editor ────────────────────────────────────────────────────────────────────
+.vscode/settings.json

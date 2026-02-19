@@ -1,0 +1,70 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #0f1117;
+  color: #e2e8f0;
+}
+
+/* Markdown content */
+.prose-fit h1 {
+  @apply text-xl font-bold text-white mt-6 mb-2;
+}
+.prose-fit h2 {
+  @apply text-base font-semibold text-accent-blue mt-5 mb-1 pb-1 border-b border-surface-border;
+}
+.prose-fit h3 {
+  @apply text-sm font-semibold text-slate-200 mt-4 mb-1;
+}
+.prose-fit p {
+  @apply text-sm text-slate-300 leading-relaxed mb-2;
+}
+.prose-fit ul {
+  @apply list-disc pl-5 text-sm text-slate-300 mb-2 space-y-0.5;
+}
+.prose-fit ol {
+  @apply list-decimal pl-5 text-sm text-slate-300 mb-2 space-y-0.5;
+}
+.prose-fit li {
+  @apply leading-relaxed;
+}
+.prose-fit strong {
+  @apply text-white font-semibold;
+}
+.prose-fit hr {
+  @apply border-surface-border my-4;
+}
+.prose-fit code {
+  @apply bg-surface-hover text-accent-green text-xs px-1.5 py-0.5 rounded;
+}
+.prose-fit pre {
+  @apply bg-surface-hover rounded-lg p-3 overflow-x-auto my-2;
+}
+.prose-fit pre code {
+  @apply bg-transparent p-0;
+}
+.prose-fit a {
+  @apply text-accent-blue underline;
+}
+.prose-fit blockquote {
+  @apply border-l-2 border-accent-blue pl-3 text-slate-400 italic my-2;
+}
+
+/* Recharts dark theme */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: #232d3f;
+}
+.recharts-text {
+  fill: #64748b !important;
+  font-size: 11px !important;
+}
+.recharts-tooltip-wrapper {
+  font-size: 12px;
+}
