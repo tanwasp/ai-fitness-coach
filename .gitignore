@@ -5,13 +5,14 @@ node_modules/
 .next/
 out/
 
-# ── Environment variables (API keys, secrets) ─────────────────────────────────
+# ── Personal folder (env vars, data, private config) ─────────────────────────
+# personal/ is never committed. See personal/ for .env.local, data/, userConfig.ts
+personal/
+
+# .env.local is a symlink → personal/.env.local; keep both patterns ignored
 .env
 .env.local
 .env.*.local
-
-# ── Personal config (profile, goals — copy from userConfig.example.ts) ────────
-src/lib/userConfig.ts
 
 # ── macOS ──────────────────────────────────────────────────────────────────────
 .DS_Store

@@ -12,5 +12,5 @@ services:
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
       - PERPLEXITY_MODEL=${PERPLEXITY_MODEL:-sonar-pro}
     volumes:
-      - ./data:/data
+      - ./personal/data:/data
     restart: unless-stopped

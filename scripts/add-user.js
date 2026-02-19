@@ -18,7 +18,7 @@ const crypto = require("crypto");
 
 // -- resolve DATA_DIR ---------------------------------------------------------
 const DATA_DIR =
-  process.env.DATA_DIR ?? path.resolve(__dirname, "..", "data");
+  process.env.DATA_DIR ?? path.resolve(__dirname, "..", "personal", "data");
 
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 

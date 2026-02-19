@@ -29,10 +29,17 @@ cd dashboard
 npm install
 ```
 
-Copy the example env file and fill in values:
+The `personal/` folder inside `dashboard/` holds all your private data and is gitignored. Create it on a fresh clone:
 
 ```bash
-cp .env.local.example .env.local   # or edit .env.local directly
+mkdir -p personal/data
+```
+
+Copy the env template to `personal/.env.local`, then symlink it so Next.js can find it at the project root:
+
+```bash
+cp .env.local.example personal/.env.local   # fill in your values
+ln -s personal/.env.local .env.local
 ```
 
 Generate a `NEXTAUTH_SECRET`:
@@ -41,7 +48,7 @@ Generate a `NEXTAUTH_SECRET`:
 openssl rand -base64 32
 ```
 
-Set it in `.env.local`:
+Set it in `personal/.env.local`:
 
 ```
 NEXTAUTH_SECRET=<your generated secret>
@@ -65,14 +72,14 @@ This creates:
 
 ### Migrate existing data (if upgrading from single-user)
 
-If you had a flat layout at `../` (one level above `dashboard/`), move your files into the new per-user structure:
+If you had a flat layout at the parent `fitness/` directory, move your files into the new per-user structure inside `personal/`:
 
 ```bash
-mkdir -p data/tanish/coach
-cp ../training_log.csv data/tanish/training_log.csv
-cp ../coach/session-notes.md data/tanish/coach/session-notes.md
+mkdir -p personal/data/tanish/coach
+cp ../training_log.csv personal/data/tanish/training_log.csv
+cp ../coach/session-notes.md personal/data/tanish/coach/session-notes.md
 # copy any plan files:
-cp ../coach/plan-*.md data/tanish/coach/
+cp ../coach/plan-*.md personal/data/tanish/coach/
 ```
 
 ### Run
@@ -87,15 +94,21 @@ Open [http://localhost:3000](http://localhost:3000). You'll be redirected to `/l
 
 ## Data Layout
 
+All user-specific files live in `dashboard/personal/` — this folder is **gitignored** and never committed.
+
 ```
-data/
-  users.json                    # user accounts (hashed passwords)
-  {userId}/
-    training_log.csv            # workout history
-    profile.json                # display name, athlete profile, goals
-    coach/
-      session-notes.md          # coach's running notes
-      plan-YYYY-MM-DD.md        # training plan files
+dashboard/
+  personal/                     # gitignored — your private data
+    .env.local                  # API keys and secrets (symlinked to .env.local at root)
+    userConfig.ts               # optional local overrides
+    data/
+      users.json                # user accounts (hashed passwords)
+      {userId}/
+        training_log.csv        # workout history
+        profile.json            # display name, athlete profile, goals
+        coach/
+          session-notes.md      # coach's running notes
+          plan-YYYY-MM-DD.md    # training plan files
 ```
 
 ### `training_log.csv` schema
@@ -144,10 +157,10 @@ docker compose exec app node /app/scripts/add-user.js \
   --password "secret"
 ```
 
-Or run the script directly on the host (Node must be installed):
+Or run the script directly on the host (Node must be installed, run from `dashboard/`):
 
 ```bash
-DATA_DIR=./data node scripts/add-user.js --id alice --name "Alice" --email "alice@example.com" --password "secret"
+node scripts/add-user.js --id alice --name "Alice" --email "alice@example.com" --password "secret"
 ```
 
 ---
