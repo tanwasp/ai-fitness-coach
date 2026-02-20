@@ -40,15 +40,7 @@ export default function RootLayout({
           </main>
 
           <footer className="border-t border-surface-border mt-12 py-4 text-center text-xs text-slate-600">
-            Run{" "}
-            <code className="bg-surface-card px-1 py-0.5 rounded text-slate-400">
-              npm run dev
-            </code>{" "}
-            in{" "}
-            <code className="bg-surface-card px-1 py-0.5 rounded text-slate-400">
-              dashboard/
-            </code>{" "}
-            to start.
+            Fitness Coach Dashboard
           </footer>
 
           <CoachChat />

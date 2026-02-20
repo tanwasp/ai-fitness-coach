@@ -18,6 +18,9 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+# Bind to all interfaces so Docker port mapping works
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
 # DATA_DIR is overridden at runtime via docker-compose environment
 ENV DATA_DIR=/data
 
