@@ -29,6 +29,7 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/scripts ./scripts
+RUN npm install --no-save bcryptjs
 
 EXPOSE 3000
 
