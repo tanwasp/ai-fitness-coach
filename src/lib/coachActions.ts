@@ -1,43 +1,11 @@
 import { getUserData } from "./data";
-import { extractTodaySection } from "./parsePlan";
-
-// Re-use the same date-matching regex from parsePlan
-const MONTH_MAP: Record<string, number> = {
-  Jan: 0,
-  Feb: 1,
-  Mar: 2,
-  Apr: 3,
-  May: 4,
-  Jun: 5,
-  Jul: 6,
-  Aug: 7,
-  Sep: 8,
-  Oct: 9,
-  Nov: 10,
-  Dec: 11,
-};
-
-function headingDate(line: string): Date | null {
-  const m = line.match(/##[^#].*?([A-Z][a-z]{2})\s+(\d{1,2})/);
-  if (!m) return null;
-  const month = MONTH_MAP[m[1]];
-  if (month === undefined) return null;
-  return new Date(2026, month, parseInt(m[2], 10));
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
+import { headingDate, isSameDay } from "./parsePlan";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type CoachAction =
   | { type: "save_note"; content: string }
-  | { type: "edit_plan_today"; replacement: string };
+  | { type: "edit_plan_today"; replacement: string; targetDate?: string };
 
 export interface ActionResult {
   type: "save_note" | "edit_plan_today";
@@ -62,11 +30,20 @@ export function executeActions(
         appendNote(action.content, today, userId);
         results.push({ type: "save_note", success: true });
       } else if (action.type === "edit_plan_today") {
-        const ok = patchPlanToday(action.replacement, today, userId);
+        const targetDate = action.targetDate
+          ? new Date(action.targetDate + "T12:00:00")
+          : today;
+        const ok = patchPlanToday(action.replacement, targetDate, userId);
         results.push({
           type: "edit_plan_today",
           success: ok,
-          detail: ok ? undefined : "today not found in plan",
+          detail: ok
+            ? action.targetDate
+              ? `Updated plan for ${action.targetDate}`
+              : undefined
+            : `date not found in plan${
+                action.targetDate ? ` (${action.targetDate})` : ""
+              }`,
         });
       }
     } catch (e) {
@@ -111,10 +88,10 @@ function patchPlanToday(
   const planMd = db.readMarkdown(planFile);
   const lines = planMd.split("\n");
 
-  // Find today's heading line using date-based matching (immune to heading text changes)
+  // Find the target heading line using date-based matching
   let start = -1;
   for (let i = 0; i < lines.length; i++) {
-    const d = headingDate(lines[i]);
+    const d = headingDate(lines[i], today);
     if (d && isSameDay(d, today)) {
       start = i;
       break;

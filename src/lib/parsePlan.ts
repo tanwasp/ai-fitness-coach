@@ -26,7 +26,7 @@ const MONTH_MAP: Record<string, number> = {
  *   - If the heading has month=Dec but today is in Jan or Feb, use last year.
  *   - If the heading has month=Jan but today is in Nov or Dec, use next year.
  */
-function headingDate(line: string, today: Date): Date | null {
+export function headingDate(line: string, today: Date): Date | null {
   // Match patterns like "Feb 19" or "Mar 4"
   const m = line.match(/##[^#].*?([A-Z][a-z]{2})\s+(\d{1,2})/);
   if (!m) return null;
@@ -46,7 +46,7 @@ function headingDate(line: string, today: Date): Date | null {
   return new Date(adjustedYear, month, day);
 }
 
-function isSameDay(a: Date, b: Date): boolean {
+export function isSameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&

@@ -72,5 +72,46 @@ export async function POST(req: Request) {
   const output = Papa.unparse(allRows, { columns: [...CSV_HEADERS] });
   fs.writeFileSync(CSV_PATH, output + "\n", "utf-8");
 
+  // Auto-save a coach note summarising what was logged
+  try {
+    const db = getUserData(session.userId);
+    const NOTES_FILE = "session-notes.md";
+    const today = new Date();
+    const ts = today.toISOString().replace("T", " ").slice(0, 16);
+
+    // Summarise the session: unique exercises + total sets
+    const sessionNames = [
+      ...new Set(
+        entries
+          .map((e: Record<string, unknown>) => e.session_name)
+          .filter(Boolean),
+      ),
+    ];
+    const exercises = [
+      ...new Set(
+        entries.map((e: Record<string, unknown>) => e.exercise).filter(Boolean),
+      ),
+    ] as string[];
+    const sessionLabel = sessionNames.length
+      ? sessionNames.join(", ")
+      : "workout";
+    const topExercises =
+      exercises.slice(0, 5).join(", ") +
+      (exercises.length > 5 ? ` (+${exercises.length - 5} more)` : "");
+    const noteText = `Logged ${sessionLabel} — ${entries.length} entries. Exercises: ${topExercises}.`;
+
+    const entry = `\n## ${ts}\n${noteText}\n`;
+    if (!db.fileExists(NOTES_FILE)) {
+      db.writeMarkdown(
+        NOTES_FILE,
+        `# Coach Session Notes\n<!-- Auto-appended by AI coach. Do not edit manually. -->\n${entry}`,
+      );
+    } else {
+      db.writeMarkdown(NOTES_FILE, db.readMarkdown(NOTES_FILE) + entry);
+    }
+  } catch {
+    // Non-fatal — don't fail the log write if note saving errors
+  }
+
   return Response.json({ written: entries.length });
 }

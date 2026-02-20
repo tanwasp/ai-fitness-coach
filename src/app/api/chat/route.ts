@@ -116,11 +116,23 @@ export async function POST(req: Request) {
     },
   );
 
-  // Extract <PLAN_UPDATE>...</PLAN_UPDATE> (XML-style — immune to ] inside markdown)
+  // Extract <PLAN_UPDATE> or <PLAN_UPDATE date="YYYY-MM-DD"> (optional date for future days)
   reply = reply.replace(
-    /<PLAN_UPDATE>([\s\S]+?)<\/PLAN_UPDATE>/g,
-    (_, content: string) => {
-      actions.push({ type: "edit_plan_today", replacement: content.trim() });
+    /<PLAN_UPDATE(?:\s+date="([^"]+)")?>[\s\S]*?<\/PLAN_UPDATE>/g,
+    (fullMatch) => {
+      const dateMatch = fullMatch.match(/<PLAN_UPDATE(?:\s+date="([^"]+)")?>/);
+      const targetDate = dateMatch?.[1] ?? undefined;
+      const contentMatch = fullMatch.match(
+        /<PLAN_UPDATE(?:\s+date="[^"]+")?>([\s\S]+?)<\/PLAN_UPDATE>/,
+      );
+      const content = contentMatch?.[1]?.trim() ?? "";
+      if (content) {
+        actions.push({
+          type: "edit_plan_today",
+          replacement: content,
+          targetDate,
+        });
+      }
       return "";
     },
   );

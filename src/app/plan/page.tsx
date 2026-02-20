@@ -13,7 +13,9 @@ export default async function PlanPage() {
   const content = db.readMarkdown(planFile);
 
   // Derive date range from filename: two-week-plan-YYYY-MM-DD_to_YYYY-MM-DD.md
-  const dateMatch = planFile?.match(/(\d{4}-\d{2}-\d{2})_to_(\d{4}-\d{2}-\d{2})/);
+  const dateMatch = planFile?.match(
+    /(\d{4}-\d{2}-\d{2})_to_(\d{4}-\d{2}-\d{2})/,
+  );
   const planRange = dateMatch
     ? `${dateMatch[1].slice(5).replace("-", "/")} → ${dateMatch[2].slice(5).replace("-", "/")}`
     : "Current Plan";
