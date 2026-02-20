@@ -1,235 +1,143 @@
-# Fitness Coach Dashboard
+# AI Fitness Coach
 
-A personal AI-powered training dashboard built with Next.js 15. Features per-user data isolation, an AI coach (Perplexity), workout logging, trend charts, plan viewer, and exercise progression tracking.
-
----
-
-## Features
-
-- **AI Coach** — chat with a context-aware training coach (powered by Perplexity AI)
-- **Workout Logging** — describe your session in natural language; the coach parses and saves it
-- **Trends** — volume, intensity, and PR charts over time
-- **Plan Viewer** — view and update your current training plan
-- **Progression** — per-exercise load tracking
-- **Multi-user** — friends can create accounts with their own isolated data and goals
+Your personal AI-powered training dashboard. Chat with a coach that knows your full workout history, log sessions in plain English, track progress over time, and keep your training plan updated automatically.
 
 ---
 
-## Local Development
+## Getting started
 
-### Prerequisites
+### 1. Get a Perplexity API key
 
-- Node.js 20+
-- A [Perplexity API key](https://www.perplexity.ai/settings/api)
+Go to [perplexity.ai/settings/api](https://www.perplexity.ai/settings/api) and create a key. This powers the AI coach.
 
-### Setup
-
-```bash
-cd dashboard
-npm install
-```
-
-The `.local/` folder inside `dashboard/` holds all your private data and is gitignored. Create it on a fresh clone:
+### 2. Set up your environment
 
 ```bash
-mkdir -p .local/data
+cp .env.local.example .local/.env.local
 ```
 
-Copy the env template to `.local/.env.local`, then symlink it so Next.js can find it at the project root:
-
-```bash
-cp .env.local.example .local/.env.local   # fill in your values
-ln -s .local/.env.local .env.local
-```
-
-Generate a `NEXTAUTH_SECRET`:
-
-```bash
-openssl rand -base64 32
-```
-
-Set it in `.local/.env.local`:
+Open `.local/.env.local` and fill in:
 
 ```
-NEXTAUTH_SECRET=<your generated secret>
+NEXTAUTH_SECRET=        # run: openssl rand -base64 32
 NEXTAUTH_URL=http://localhost:3000
-PERPLEXITY_API_KEY=<your key>
+PERPLEXITY_API_KEY=     # your key from step 1
 ```
 
-### Create your first user
+### 3. Create your account
 
 ```bash
-node scripts/add-user.js \
-  --id tanish \
-  --name "Tanish" \
-  --email "you@example.com" \
-  --password "your-password"
+node scripts/add-user.js
 ```
 
-This creates:
+You'll be prompted for a username and password. This creates a local account — no email needed.
 
-- An entry in `.local/data/users.json`
-- An empty `.local/data/tanish/coach/` directory
-
-### Migrate existing data (if upgrading from single-user)
-
-If you had a flat layout at the parent `fitness/` directory, move your files into the new per-user structure inside `.local/`:
+### 4. Run the app
 
 ```bash
-mkdir -p .local/data/tanish/coach
-cp ../training_log.csv .local/data/tanish/training_log.csv
-cp ../coach/session-notes.md .local/data/tanish/coach/session-notes.md
-# copy any plan files:
-cp ../coach/plan-*.md .local/data/tanish/coach/
-```
-
-### Run
-
-```bash
+npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). You'll be redirected to `/login`, then to `/onboarding` on first login to set up your athlete profile and goals.
+Open [http://localhost:3000](http://localhost:3000), sign in, and you're ready to go.
 
 ---
 
-## Data Layout
+## How to use it
 
-All user-specific files live in `dashboard/.local/` — this folder is **gitignored** and never committed.
+### Chat with your coach
 
-```
-dashboard/
-  .local/                     # gitignored — your private data
-    .env.local                  # API keys and secrets (symlinked to .env.local at root)
-    data/
-      users.json                # user accounts (hashed passwords)
-      {userId}/
-        training_log.csv        # workout history
-        profile.json            # display name, athlete profile, goals
-        coach/
-          session-notes.md      # coach's running notes
-          plan-YYYY-MM-DD.md    # training plan files
-```
+Go to the **Chat** tab and talk like you would to a real coach:
 
-### `training_log.csv` schema
+> "I did bench press 3x8 at 185lbs, felt strong today"
+> "My shoulder is a bit sore, scale back pressing this week"
+> "What should I focus on tomorrow?"
 
-| Column         | Description                              |
-| -------------- | ---------------------------------------- |
-| `date`         | ISO date `YYYY-MM-DD`                    |
-| `activity`     | Exercise name (e.g. `Bench Press`)       |
-| `sets`         | Number of sets                           |
-| `reps`         | Reps per set (or total)                  |
-| `weight_kg`    | Load in kg                               |
-| `rpe`          | Rate of perceived exertion (1–10)        |
-| `duration_min` | Duration in minutes (cardio / accessory) |
-| `notes`        | Free-text notes                          |
+The coach remembers your history, goals, and past notes — and will update your plan if needed.
+
+### Log a workout
+
+Click **Log Workout** and describe what you did in plain English. The app will parse it and save it to your training log automatically.
+
+### View your plan
+
+The **Plan** tab shows your current two-week training plan. The coach can update it based on your progress and how you're feeling.
+
+### Track your progress
+
+The **Trends** tab shows charts for each exercise over time so you can see how you're improving.
 
 ---
 
-## Docker (Raspberry Pi / self-hosting)
+## Adding another user
 
-### Build & run
+Each person gets their own private data. To add someone:
+
+```bash
+node scripts/add-user.js
+```
+
+Run this for each new user. Their workouts, plans, and notes are completely separate.
+
+---
+
+## Self-hosting on a Raspberry Pi
+
+### 1. Build and start
 
 ```bash
 docker compose up -d --build
 ```
 
-### Environment variables
-
-Create a `.env` file next to `docker-compose.yml`:
-
-```
-NEXTAUTH_SECRET=<your secret>
-NEXTAUTH_URL=https://yourdomain.com
-PERPLEXITY_API_KEY=<your key>
-PERPLEXITY_MODEL=sonar-pro
-```
-
-Data is persisted in `./data` on the host and mounted at `/data` inside the container.
-
-### Adding users on the Pi
+### 2. Create your account on the Pi
 
 ```bash
-docker compose exec app node /app/scripts/add-user.js \
-  --id alice \
-  --name "Alice" \
-  --email "alice@example.com" \
-  --password "secret"
+docker compose exec app node /app/scripts/add-user.js
 ```
 
-Or run the script directly on the host (Node must be installed, run from `dashboard/`):
+### 3. Update the app
 
 ```bash
-node scripts/add-user.js --id alice --name "Alice" --email "alice@example.com" --password "secret"
+git pull
+docker compose up -d --build
 ```
 
----
+### 4. Access it from anywhere (Cloudflare Tunnel)
 
-## Cloudflare Tunnel (Pi behind NAT)
-
-Cloudflare Tunnel lets your Pi serve traffic on a public domain without opening router ports.
-
-1. Install `cloudflared` on the Pi:
-
+1. Install `cloudflared` on the Pi
+2. Run `cloudflared tunnel login` and follow the browser prompt
+3. Create a tunnel:
    ```bash
-   curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64 -o /usr/local/bin/cloudflared
-   chmod +x /usr/local/bin/cloudflared
+   cloudflared tunnel create ai-fitness-coach
    ```
-
-2. Authenticate and create a tunnel:
-
-   ```bash
-   cloudflared tunnel login
-   cloudflared tunnel create fitness
-   ```
-
-3. Create `~/.cloudflared/config.yml`:
-
+4. Create `/etc/cloudflared/config.yml`:
    ```yaml
-   tunnel: <tunnel-id>
-   credentials-file: /home/pi/.cloudflared/<tunnel-id>.json
+   tunnel: <your-tunnel-uuid>
+   credentials-file: /etc/cloudflared/<your-tunnel-uuid>.json
    ingress:
-     - hostname: yourdomain.com
+     - hostname: fit.yourdomain.com
        service: http://localhost:3000
      - service: http_status:404
    ```
-
-4. Route DNS and run:
-
+5. Add the DNS record:
    ```bash
-   cloudflared tunnel route dns fitness yourdomain.com
-   cloudflared tunnel run fitness
+   cloudflared tunnel route dns ai-fitness-coach fit.yourdomain.com
    ```
-
-5. (Optional) Run as a systemd service:
+6. Install and start the service:
    ```bash
-   cloudflared service install
-   sudo systemctl enable cloudflared
+   sudo cloudflared service install
    sudo systemctl start cloudflared
    ```
-
-Don't forget to set `NEXTAUTH_URL=https://yourdomain.com` in your `.env`.
-
----
-
-## Environment Variables Reference
-
-| Variable             | Required | Description                                                                                    |
-| -------------------- | -------- | ---------------------------------------------------------------------------------------------- |
-| `NEXTAUTH_SECRET`    | Yes      | Random 32-byte secret for JWT signing. Generate: `openssl rand -base64 32`                     |
-| `NEXTAUTH_URL`       | Yes      | Full public URL of the app (`http://localhost:3000` locally, `https://yourdomain.com` in prod) |
-| `PERPLEXITY_API_KEY` | Yes      | API key from perplexity.ai                                                                     |
-| `PERPLEXITY_MODEL`   | No       | Model name (default: `sonar-pro`)                                                              |
-| `DATA_DIR`           | No       | Absolute path to data directory (default: `../data` relative to `dashboard/`)                  |
+7. Update `NEXTAUTH_URL` in your `.env` to `https://fit.yourdomain.com`, then restart:
+   ```bash
+   docker compose up -d
+   ```
 
 ---
 
-## Tech Stack
+## Tech stack
 
-- **Next.js 15** (App Router, TypeScript)
-- **NextAuth.js v4** — credentials-based auth, JWT sessions
-- **bcryptjs** — password hashing
-- **Tailwind CSS** — styling
-- **Recharts** — trend charts
-- **Perplexity AI** — coach inference via `/v1/responses` Agent API
-- **PapaParse** — CSV parsing
+- [Next.js 15](https://nextjs.org/) — frontend + API
+- [NextAuth.js](https://next-auth.js.org/) — authentication
+- [Perplexity AI](https://www.perplexity.ai/) — AI coach
+- [Docker](https://www.docker.com/) — self-hosting
