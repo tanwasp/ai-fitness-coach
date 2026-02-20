@@ -70,7 +70,8 @@ export default async function TodayPage() {
   if (!db.hasProfile()) redirect("/onboarding");
 
   const today = new Date();
-  const planMd = db.readMarkdown(db.findActivePlanFile(today));
+  const activePlanFile = db.findActivePlanFile(today);
+  const planMd = activePlanFile ? db.readMarkdown(activePlanFile) : "";
   const allEntries = db.readLog();
   const profile = db.readUserProfile()!;
   const DASHBOARD_GOALS = profile.goals;

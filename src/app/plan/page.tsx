@@ -10,7 +10,7 @@ export default async function PlanPage() {
   const db = getUserData(session.userId);
   if (!db.hasProfile()) redirect("/onboarding");
   const planFile = db.findActivePlanFile(new Date());
-  const content = db.readMarkdown(planFile);
+  const content = planFile ? db.readMarkdown(planFile) : "";
 
   // Derive date range from filename: two-week-plan-YYYY-MM-DD_to_YYYY-MM-DD.md
   const dateMatch = planFile?.match(

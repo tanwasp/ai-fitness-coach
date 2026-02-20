@@ -87,7 +87,7 @@ function sessionNotesSummary(userId: string): string {
 export function buildCoachSystemPrompt(today: Date, userId: string): string {
   const db = getUserData(userId);
   const planFile = db.findActivePlanFile(today);
-  const planMd = db.readMarkdown(planFile);
+  const planMd = planFile ? db.readMarkdown(planFile) : "";
   const progressionMd = db.readMarkdown("progression.md");
   const { heading, body, found } = extractTodaySection(planMd, today);
 
