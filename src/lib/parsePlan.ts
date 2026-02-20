@@ -20,15 +20,30 @@ const MONTH_MAP: Record<string, number> = {
   Dec: 11,
 };
 
-function headingDate(line: string): Date | null {
+/**
+ * Parse month+day from a heading line and infer the most likely year relative
+ * to `today`.  Handles plans that cross a Dec→Jan year boundary:
+ *   - If the heading has month=Dec but today is in Jan or Feb, use last year.
+ *   - If the heading has month=Jan but today is in Nov or Dec, use next year.
+ */
+function headingDate(line: string, today: Date): Date | null {
   // Match patterns like "Feb 19" or "Mar 4"
   const m = line.match(/##[^#].*?([A-Z][a-z]{2})\s+(\d{1,2})/);
   if (!m) return null;
   const month = MONTH_MAP[m[1]];
   if (month === undefined) return null;
   const day = parseInt(m[2], 10);
-  // Always 2026 for this plan
-  return new Date(2026, month, day);
+
+  const year = today.getFullYear();
+  const todayMonth = today.getMonth();
+
+  let adjustedYear = year;
+  // Dec heading but we're in Jan/Feb → heading belongs to previous year
+  if (month === 11 && todayMonth <= 1) adjustedYear = year - 1;
+  // Jan heading but we're in Nov/Dec → heading belongs to next year
+  if (month === 0 && todayMonth >= 10) adjustedYear = year + 1;
+
+  return new Date(adjustedYear, month, day);
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -50,7 +65,7 @@ export function extractTodaySection(planMd: string, today: Date): TodaySection {
   let targetIndex = -1;
 
   for (let i = 0; i < lines.length; i++) {
-    const d = headingDate(lines[i]);
+    const d = headingDate(lines[i], today);
     if (d && isSameDay(d, today)) {
       targetIndex = i;
       break;

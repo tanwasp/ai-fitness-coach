@@ -287,7 +287,7 @@ export default function CoachChat() {
                 </code>{" "}
                 to{" "}
                 <code className="bg-surface-hover px-1 rounded">
-                  dashboard/.env.local
+                  .local/.env.local
                 </code>{" "}
                 and restart the dev server.
               </div>

@@ -51,12 +51,9 @@ export default async function ProgressionPage() {
         <div>
           <h1 className="text-xl font-bold text-white">Progression Rules</h1>
           <p className="text-sm text-slate-500">
-            Your plan to hit all June goals
+            Your long-term progression guidelines
           </p>
         </div>
-        <span className="text-xs px-2.5 py-1 rounded-full bg-accent-purple/10 text-accent-purple border border-accent-purple/20 font-medium">
-          Feb – June 2026
-        </span>
       </div>
       <ProgressionAccordion sections={sections} />
     </div>

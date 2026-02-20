@@ -9,7 +9,15 @@ export default async function PlanPage() {
   if (!session?.userId) redirect("/login");
   const db = getUserData(session.userId);
   if (!db.hasProfile()) redirect("/onboarding");
-  const content = db.readMarkdown(db.findActivePlanFile(new Date()));
+  const planFile = db.findActivePlanFile(new Date());
+  const content = db.readMarkdown(planFile);
+
+  // Derive date range from filename: two-week-plan-YYYY-MM-DD_to_YYYY-MM-DD.md
+  const dateMatch = planFile?.match(/(\d{4}-\d{2}-\d{2})_to_(\d{4}-\d{2}-\d{2})/);
+  const planRange = dateMatch
+    ? `${dateMatch[1].slice(5).replace("-", "/")} → ${dateMatch[2].slice(5).replace("-", "/")}`
+    : "Current Plan";
+
   return (
     <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden">
       <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">
@@ -18,7 +26,7 @@ export default async function PlanPage() {
           <h1 className="font-semibold text-white text-sm">2-Week Plan</h1>
         </div>
         <span className="text-xs px-2.5 py-1 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 font-medium">
-          Feb 19 → Mar 4
+          {planRange}
         </span>
       </div>
       <div className="px-4 py-4">

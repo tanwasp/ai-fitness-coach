@@ -105,11 +105,6 @@ export default async function TodayPage() {
             Here&apos;s your plan for today
           </p>
         </div>
-        <div className="flex gap-2 text-xs">
-          <span className="px-2.5 py-1 rounded-full bg-accent-blue/10 text-accent-blue border border-accent-blue/20 font-medium">
-            Feb – June 2026
-          </span>
-        </div>
       </div>
 
       {/* Goals bar */}

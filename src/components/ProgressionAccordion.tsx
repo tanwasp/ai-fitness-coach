@@ -31,14 +31,21 @@ function getMeta(title: string) {
   return { icon: "📌", color: "text-slate-400", defaultOpen: false };
 }
 
-function AccordionItem({ section }: { section: ProgressionSection }) {
+function AccordionItem({
+  section,
+  open,
+  onToggle,
+}: {
+  section: ProgressionSection;
+  open: boolean;
+  onToggle: () => void;
+}) {
   const meta = getMeta(section.title);
-  const [open, setOpen] = useState(meta.defaultOpen);
 
   return (
     <div className="border border-surface-border rounded-2xl overflow-hidden">
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={onToggle}
         className="w-full flex items-center gap-3 px-4 py-3.5 bg-surface-card hover:bg-surface-hover transition-colors text-left"
       >
         <span className="text-lg leading-none shrink-0">{meta.icon}</span>
@@ -66,20 +73,43 @@ export default function ProgressionAccordion({
 }: {
   sections: ProgressionSection[];
 }) {
-  const [allOpen, setAllOpen] = useState(false);
+  const [openIndices, setOpenIndices] = useState<Set<number>>(new Set());
+  const allOpen = sections.length > 0 && openIndices.size === sections.length;
+
+  function toggleAll() {
+    if (allOpen) {
+      setOpenIndices(new Set());
+    } else {
+      setOpenIndices(new Set(sections.map((_, i) => i)));
+    }
+  }
+
+  function toggleOne(i: number) {
+    setOpenIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  }
 
   return (
     <div className="space-y-2">
       <div className="flex justify-end mb-1">
         <button
-          onClick={() => setAllOpen((o) => !o)}
+          onClick={toggleAll}
           className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
         >
           {allOpen ? "Collapse all" : "Expand all"}
         </button>
       </div>
       {sections.map((s, i) => (
-        <AccordionItem key={i} section={s} />
+        <AccordionItem
+          key={i}
+          section={s}
+          open={openIndices.has(i)}
+          onToggle={() => toggleOne(i)}
+        />
       ))}
     </div>
   );
