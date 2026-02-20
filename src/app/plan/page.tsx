@@ -8,6 +8,7 @@ export default async function PlanPage() {
   const session = await getServerSession(authOptions);
   if (!session?.userId) redirect("/login");
   const db = getUserData(session.userId);
+  if (!db.hasProfile()) redirect("/onboarding");
   const content = db.readMarkdown(db.findActivePlanFile(new Date()));
   return (
     <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden">

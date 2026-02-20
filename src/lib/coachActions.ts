@@ -45,7 +45,7 @@ export interface ActionResult {
   detail?: string;
 }
 
-const NOTES_FILE = "coach/session-notes.md";
+const NOTES_FILE = "session-notes.md";
 
 // ── Main executor ─────────────────────────────────────────────────────────────
 

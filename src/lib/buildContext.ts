@@ -75,8 +75,8 @@ function recentLogSummary(userId: string, n = 40): string {
  */
 function sessionNotesSummary(userId: string): string {
   const db = getUserData(userId);
-  if (!db.fileExists("coach/session-notes.md")) return "";
-  const notes = db.readMarkdown("coach/session-notes.md");
+  if (!db.fileExists("session-notes.md")) return "";
+  const notes = db.readMarkdown("session-notes.md");
   // Strip the header comment, keep only note entries
   const content = notes.replace(/^#[^\n]*\n[^\n]*\n/, "").trim();
   if (!content) return "";
@@ -88,7 +88,7 @@ export function buildCoachSystemPrompt(today: Date, userId: string): string {
   const db = getUserData(userId);
   const planFile = db.findActivePlanFile(today);
   const planMd = db.readMarkdown(planFile);
-  const progressionMd = db.readMarkdown("coach/progression.md");
+  const progressionMd = db.readMarkdown("progression.md");
   const { heading, body, found } = extractTodaySection(planMd, today);
 
   const profile = db.readUserProfile();

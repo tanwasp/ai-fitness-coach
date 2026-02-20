@@ -54,8 +54,8 @@ export default function OnboardingPage() {
           athleteProfile: athleteProfile.trim(),
           goals: goals.map((g) => ({
             label: g.label,
-            value: Number(g.value) || 0,
-            current: Number(g.current) || 0,
+            value: g.value,
+            current: g.current,
             color: g.color,
           })),
         }),
@@ -128,14 +128,14 @@ export default function OnboardingPage() {
                   className="bg-surface-card border border-surface-border rounded-lg px-3 py-2 text-slate-200 placeholder-slate-600 text-sm focus:outline-none focus:border-accent-blue/60"
                 />
                 <input
-                  type="number"
+                  type="text"
                   value={g.current}
                   onChange={(e) => updateGoal(i, "current", e.target.value)}
-                  placeholder="Current"
+                  placeholder="Current (e.g. 4 reps)"
                   className="bg-surface-card border border-surface-border rounded-lg px-3 py-2 text-slate-200 placeholder-slate-600 text-sm focus:outline-none focus:border-accent-blue/60"
                 />
                 <input
-                  type="number"
+                  type="text"
                   value={g.value}
                   onChange={(e) => updateGoal(i, "value", e.target.value)}
                   placeholder="Target"

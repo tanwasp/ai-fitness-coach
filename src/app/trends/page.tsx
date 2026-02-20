@@ -7,7 +7,9 @@ import { redirect } from "next/navigation";
 export default async function TrendsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.userId) redirect("/login");
-  const entries = getUserData(session.userId).readLog();
+  const db = getUserData(session.userId);
+  if (!db.hasProfile()) redirect("/onboarding");
+  const entries = db.readLog();
   return (
     <div className="bg-surface-card border border-surface-border rounded-2xl overflow-hidden">
       <div className="px-4 py-3 border-b border-surface-border flex items-center justify-between">

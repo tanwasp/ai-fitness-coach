@@ -66,11 +66,10 @@ export function getUserData(userId: string) {
   }
 
   function findActivePlanFile(today: Date = new Date()): string {
-    const coachDir = abs("coach");
     let files: string[] = [];
     try {
       files = fs
-        .readdirSync(coachDir)
+        .readdirSync(root)
         .filter((f) =>
           /^two-week-plan-\d{4}-\d{2}-\d{2}_to_\d{4}-\d{2}-\d{2}\.md$/.test(f),
         );
@@ -97,10 +96,10 @@ export function getUserData(userId: string) {
       (p) =>
         todayMs >= p.start.getTime() && todayMs <= p.end.getTime() + 86_400_000,
     );
-    if (active) return `coach/${active.file}`;
+    if (active) return active.file;
 
     parsed.sort((a, b) => b.start.getTime() - a.start.getTime());
-    return `coach/${parsed[0].file}`;
+    return parsed[0].file;
   }
 
   function readLog(): LogEntry[] {

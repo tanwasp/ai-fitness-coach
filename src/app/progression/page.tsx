@@ -40,9 +40,9 @@ function parseProgressionSections(md: string): ProgressionSection[] {
 export default async function ProgressionPage() {
   const session = await getServerSession(authOptions);
   if (!session?.userId) redirect("/login");
-  const content = getUserData(session.userId).readMarkdown(
-    "coach/progression.md",
-  );
+  const db = getUserData(session.userId);
+  if (!db.hasProfile()) redirect("/onboarding");
+  const content = db.readMarkdown("progression.md");
   const sections = parseProgressionSections(content);
 
   return (
