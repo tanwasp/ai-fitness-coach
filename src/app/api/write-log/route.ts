@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import { getUserData } from "@/lib/data";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getETTimestamp } from "@/lib/timezone";
 
 export const runtime = "nodejs";
 
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
     const db = getUserData(session.userId);
     const NOTES_FILE = "session-notes.md";
     const today = new Date();
-    const ts = today.toISOString().replace("T", " ").slice(0, 16);
+    const ts = getETTimestamp(today);
 
     // Summarise the session: unique exercises + total sets
     const sessionNames = [

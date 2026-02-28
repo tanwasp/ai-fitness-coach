@@ -1,16 +1,29 @@
 import { getUserData } from "@/lib/data";
 import MarkdownRender from "@/components/MarkdownRender";
+import PlanScrollToToday from "@/components/PlanScrollToToday";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getETDate } from "@/lib/timezone";
+
+const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+const MONTHS = [
+  "jan", "feb", "mar", "apr", "may", "jun",
+  "jul", "aug", "sep", "oct", "nov", "dec",
+];
 
 export default async function PlanPage() {
   const session = await getServerSession(authOptions);
   if (!session?.userId) redirect("/login");
   const db = getUserData(session.userId);
   if (!db.hasProfile()) redirect("/onboarding");
-  const planFile = db.findActivePlanFile(new Date());
+
+  const today = getETDate();
+  const planFile = db.findActivePlanFile(today);
   const content = db.readMarkdown(planFile);
+
+  // Anchor ID that MarkdownRender assigns to today's ## heading
+  const todayId = `plan-${WEEKDAYS[today.getDay()]}-${MONTHS[today.getMonth()]}-${today.getDate()}`;
 
   // Derive date range from filename: two-week-plan-YYYY-MM-DD_to_YYYY-MM-DD.md
   const dateMatch = planFile?.match(
@@ -32,6 +45,7 @@ export default async function PlanPage() {
         </span>
       </div>
       <div className="px-4 py-4">
+        <PlanScrollToToday todayId={todayId} />
         <MarkdownRender content={content} />
       </div>
     </div>

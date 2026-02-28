@@ -1,5 +1,6 @@
 import { getUserData } from "./data";
 import { headingDate, isSameDay } from "./parsePlan";
+import { getETTimestamp } from "./timezone";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -62,7 +63,7 @@ export function executeActions(
 
 function appendNote(content: string, today: Date, userId: string): void {
   const db = getUserData(userId);
-  const ts = today.toISOString().replace("T", " ").slice(0, 16);
+  const ts = getETTimestamp(today);
   const entry = `\n## ${ts}\n${content.trim()}\n`;
 
   if (!db.fileExists(NOTES_FILE)) {

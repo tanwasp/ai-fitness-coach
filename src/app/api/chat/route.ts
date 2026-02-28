@@ -4,6 +4,7 @@ import {
   type CoachAction,
   type ActionResult,
 } from "@/lib/coachActions";
+import { getETDate } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
     messages: { role: string; content: string }[];
   };
 
-  const today = new Date();
+  const today = getETDate();
   const systemPrompt = buildCoachSystemPrompt(today, userId);
   const model = process.env.PERPLEXITY_MODEL ?? "sonar-pro";
 

@@ -22,12 +22,22 @@ interface ParsedEntry {
   notes?: string;
 }
 
+interface PlanUpdate {
+  date: string;    // YYYY-MM-DD
+  content: string; // full replacement markdown
+  reason: string;  // one-sentence explanation
+}
+
+type PlanUpdateStatus = "pending" | "applying" | "applied" | "skipped";
+
 type Stage = "idle" | "parsing" | "preview" | "saving" | "saved" | "error";
 
 export default function WorkoutLogger() {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [entries, setEntries] = useState<ParsedEntry[]>([]);
+  const [planUpdate, setPlanUpdate] = useState<PlanUpdate | null>(null);
+  const [planUpdateStatus, setPlanUpdateStatus] = useState<PlanUpdateStatus>("pending");
   const [stage, setStage] = useState<Stage>("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -51,6 +61,14 @@ export default function WorkoutLogger() {
       }
 
       setEntries(data.entries ?? []);
+      // Validate planUpdate shape before storing
+      const pu = data.planUpdate;
+      if (pu && typeof pu === "object" && pu.date && pu.content && pu.reason) {
+        setPlanUpdate(pu as PlanUpdate);
+        setPlanUpdateStatus("pending");
+      } else {
+        setPlanUpdate(null);
+      }
       setStage("preview");
     } catch (e) {
       setErrorMsg(String(e));
@@ -88,7 +106,31 @@ export default function WorkoutLogger() {
   function reset() {
     setStage("idle");
     setEntries([]);
+    setPlanUpdate(null);
+    setPlanUpdateStatus("pending");
     setErrorMsg("");
+  }
+
+  async function handleApplyPlanUpdate() {
+    if (!planUpdate) return;
+    setPlanUpdateStatus("applying");
+    try {
+      const res = await fetch("/api/apply-plan-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: planUpdate.date, content: planUpdate.content }),
+      });
+      if (res.ok) {
+        setPlanUpdateStatus("applied");
+      } else {
+        const d = await res.json();
+        setErrorMsg(d.error ?? "Failed to apply plan update");
+        setPlanUpdateStatus("pending");
+      }
+    } catch (e) {
+      setErrorMsg(String(e));
+      setPlanUpdateStatus("pending");
+    }
   }
 
   function entryLabel(e: ParsedEntry) {
@@ -201,6 +243,44 @@ export default function WorkoutLogger() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Plan update suggestion */}
+                  {planUpdate && planUpdateStatus !== "skipped" && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-sm shrink-0">📅</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-amber-300">
+                            Plan adjustment suggested for {planUpdate.date}
+                          </p>
+                          <p className="text-[10px] text-amber-400/80 mt-0.5">
+                            {planUpdate.reason}
+                          </p>
+                        </div>
+                      </div>
+                      {planUpdateStatus === "applied" ? (
+                        <p className="text-[10px] text-accent-green font-medium">
+                          ✓ Plan updated
+                        </p>
+                      ) : (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleApplyPlanUpdate}
+                            disabled={planUpdateStatus === "applying"}
+                            className="px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-semibold hover:bg-amber-500/30 disabled:opacity-50 transition-all"
+                          >
+                            {planUpdateStatus === "applying" ? "Applying…" : "Apply change"}
+                          </button>
+                          <button
+                            onClick={() => setPlanUpdateStatus("skipped")}
+                            className="px-3 py-1 rounded-lg text-slate-500 text-[10px] hover:text-slate-300 transition-all"
+                          >
+                            Skip
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
