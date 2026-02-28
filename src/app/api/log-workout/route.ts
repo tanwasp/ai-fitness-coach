@@ -88,7 +88,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model,
         stream: false,
-        max_output_tokens: 2048,
+        max_output_tokens: 4096,
         instructions: systemPrompt,
         input: [
           {
