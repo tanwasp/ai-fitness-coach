@@ -11,92 +11,197 @@ import {
 } from "recharts";
 import type { LogEntry } from "@/lib/data";
 
-// ── Types ──────────────────────────────────────────────────────────────────
-type ActivityKind =
-  | "lift"
-  | "conditioning"
-  | "run"
-  | "core"
+// ── Exercise kinds ─────────────────────────────────────────────────────────
+// Determined from actual data fields present for that exercise.
+type ExerciseKind =
+  | "weighted"    // has weight_lb or weight_each_db_lb — full volume tracking
+  | "bodyweight"  // strength exercise, reps only, no external load
+  | "assisted"    // has assistance_level (e.g. Assisted Dip machine)
+  | "core_timed"  // timed holds: Plank, Side Plank
+  | "core_reps"   // rep-based core: Leg Raise, Ab Roll-Out
+  | "run"         // running
+  | "conditioning"// football / cardio
   | "warmup"
   | "other";
+
+// Whether the weighted exercise uses dumbbells (affects label copy)
+type DbMode = "barbell" | "dumbbell" | "mixed";
 
 interface Metric {
   key: string;
   label: string;
   color: string;
   unit: string;
+  note?: string; // optional small caption below chart
 }
 
-// ── Activity classification ─────────────────────────────────────────────
-function classify(activityType: string, sessionType: string): ActivityKind {
-  const a = activityType.toLowerCase();
-  const s = sessionType.toLowerCase();
-  if (a === "football" || s === "conditioning") return "conditioning";
-  if (a === "lift" && s === "strength") return "lift";
-  if (a === "run") return "run";
-  if (s === "core") return "core";
-  if (a === "warmup") return "warmup";
-  return "other";
+// ── Effective weight helper ─────────────────────────────────────────────────
+// For barbell: weight_lb is the total bar+plates weight.
+// For dumbbells: weight_each_db_lb × 2 = total load lifted per rep.
+function effectiveWeight(r: LogEntry): number | null {
+  if (r.weight_lb != null) return r.weight_lb;
+  if (r.weight_each_db_lb != null) return r.weight_each_db_lb * 2;
+  return null;
 }
 
-// ── Metrics to show per kind ────────────────────────────────────────────
-// All possible metrics per kind. At render time we filter out any metric
-// where every data point is null, so "No data yet" cards never appear.
-const METRICS_BY_KIND: Record<ActivityKind, Metric[]> = {
-  lift: [
-    {
-      key: "max_weight",
-      label: "Max Weight (lb)",
-      color: "#60a5fa",
-      unit: "lb",
-    },
-    {
-      key: "volume",
-      label: "Volume (reps × lb)",
-      color: "#a78bfa",
-      unit: "lb",
-    },
-    { key: "total_reps", label: "Total Reps", color: "#34d399", unit: "" },
-    { key: "duration", label: "Duration (min)", color: "#fb923c", unit: "min" },
-  ],
-  conditioning: [
-    { key: "duration", label: "Duration (min)", color: "#fb923c", unit: "min" },
-  ],
-  run: [
-    { key: "duration", label: "Duration (min)", color: "#34d399", unit: "min" },
-    { key: "distance", label: "Distance (km)", color: "#60a5fa", unit: "km" },
-  ],
-  core: [
-    { key: "total_reps", label: "Total Reps", color: "#34d399", unit: "" },
-    { key: "duration", label: "Duration (min)", color: "#fb923c", unit: "min" },
-  ],
-  warmup: [
-    { key: "total_reps", label: "Total Reps", color: "#94a3b8", unit: "" },
-    { key: "duration", label: "Duration (min)", color: "#fb923c", unit: "min" },
-  ],
-  other: [
-    { key: "total_reps", label: "Total Reps", color: "#34d399", unit: "" },
-    { key: "duration", label: "Duration (min)", color: "#fb923c", unit: "min" },
-  ],
-};
+// ── Classify an exercise from its log entries ───────────────────────────────
+function classifyExercise(rows: LogEntry[]): {
+  kind: ExerciseKind;
+  dbMode: DbMode;
+} {
+  if (!rows.length) return { kind: "other", dbMode: "barbell" };
 
-// ── Compute one value per date ──────────────────────────────────────────
+  const first = rows[0];
+  const actType = first.activity_type?.toLowerCase() ?? "";
+  const sesType = first.session_type?.toLowerCase() ?? "";
+
+  // Running
+  if (actType === "run") return { kind: "run", dbMode: "barbell" };
+
+  // Conditioning / Football
+  if (actType === "football" || sesType === "conditioning")
+    return { kind: "conditioning", dbMode: "barbell" };
+
+  // Warmup activities
+  if (actType === "mobility" || sesType === "mobility")
+    return { kind: "warmup", dbMode: "barbell" };
+
+  // For strength/core lifts: inspect which weight fields are populated
+  const hasWeight = rows.some(
+    (r) => r.weight_lb != null || r.weight_each_db_lb != null,
+  );
+  const hasAssistance = rows.some((r) => r.assistance_level != null);
+  const hasDuration = rows.some((r) => r.duration_min != null);
+
+  // Determine dumbbell mode for weighted exercises
+  const hasBB = rows.some((r) => r.weight_lb != null && r.weight_each_db_lb == null);
+  const hasDB = rows.some((r) => r.weight_each_db_lb != null);
+  const dbMode: DbMode =
+    hasBB && hasDB ? "mixed" : hasDB ? "dumbbell" : "barbell";
+
+  if (hasWeight) return { kind: "weighted", dbMode };
+  if (hasAssistance) return { kind: "assisted", dbMode: "barbell" };
+
+  // Core: timed vs reps
+  if (sesType === "core" || actType === "core") {
+    return { kind: hasDuration ? "core_timed" : "core_reps", dbMode: "barbell" };
+  }
+
+  // Strength with no weight = bodyweight
+  if (sesType === "strength" || actType === "lift") {
+    return { kind: "bodyweight", dbMode: "barbell" };
+  }
+
+  return { kind: "other", dbMode: "barbell" };
+}
+
+// ── Metrics per kind ────────────────────────────────────────────────────────
+function metricsForKind(kind: ExerciseKind, dbMode: DbMode): Metric[] {
+  const weightLabel =
+    dbMode === "dumbbell"
+      ? "Max Weight (lb total, each×2)"
+      : dbMode === "mixed"
+        ? "Max Weight (lb total)"
+        : "Max Weight (lb)";
+  const volumeLabel =
+    dbMode === "dumbbell"
+      ? "Volume (reps × total lb)"
+      : "Volume (reps × lb)";
+  const weightNote =
+    dbMode === "dumbbell"
+      ? "Dumbbell total = each DB weight × 2"
+      : dbMode === "mixed"
+        ? "Mixed: barbell sets use bar weight; DB sets use each×2"
+        : undefined;
+
+  switch (kind) {
+    case "weighted":
+      return [
+        { key: "max_weight",  label: weightLabel,  color: "#60a5fa", unit: "lb", note: weightNote },
+        { key: "volume",      label: volumeLabel,  color: "#a78bfa", unit: "lb", note: weightNote },
+        { key: "max_reps",    label: "Max Reps (work set)", color: "#34d399", unit: "" },
+        { key: "total_sets",  label: "Work Sets",  color: "#fb923c", unit: "" },
+      ];
+    case "bodyweight":
+      return [
+        { key: "total_reps",  label: "Total Reps", color: "#34d399", unit: "" },
+        { key: "max_reps",    label: "Max Reps (best set)", color: "#60a5fa", unit: "" },
+        { key: "total_sets",  label: "Total Sets", color: "#fb923c", unit: "" },
+      ];
+    case "assisted":
+      return [
+        { key: "min_assistance", label: "Assistance Level (lower = harder)", color: "#f472b6", unit: "", note: "Lower assistance level = more of your own strength" },
+        { key: "total_reps",     label: "Total Reps", color: "#34d399", unit: "" },
+      ];
+    case "core_timed":
+      return [
+        { key: "duration",    label: "Total Hold Time (min)", color: "#fb923c", unit: "min" },
+        { key: "total_sets",  label: "Sets",  color: "#94a3b8", unit: "" },
+      ];
+    case "core_reps":
+      return [
+        { key: "total_reps",  label: "Total Reps",  color: "#34d399", unit: "" },
+        { key: "max_reps",    label: "Max Reps (best set)", color: "#60a5fa", unit: "" },
+        { key: "total_sets",  label: "Sets", color: "#94a3b8", unit: "" },
+      ];
+    case "run":
+      return [
+        { key: "distance",  label: "Distance (km)",   color: "#60a5fa", unit: "km" },
+        { key: "duration",  label: "Duration (min)",  color: "#34d399", unit: "min" },
+      ];
+    case "conditioning":
+      return [
+        { key: "duration", label: "Duration (min)", color: "#fb923c", unit: "min" },
+      ];
+    case "warmup":
+    case "other":
+    default:
+      return [
+        { key: "total_reps", label: "Total Reps",    color: "#94a3b8", unit: "" },
+        { key: "duration",   label: "Duration (min)", color: "#fb923c", unit: "min" },
+      ];
+  }
+}
+
+// ── Compute one value per date group ────────────────────────────────────────
 function computeValue(rows: LogEntry[], metric: string): number | null {
+  // For weight/volume metrics, prefer work+top_set, fallback to all rows
+  const workRows = rows.filter(
+    (r) => !r.set_type || r.set_type === "work" || r.set_type === "top_set",
+  );
+  const wRows = workRows.length > 0 ? workRows : rows;
+
   switch (metric) {
     case "max_weight": {
-      const vals = rows
-        .map((r) => r.weight_lb)
+      const vals = wRows
+        .map(effectiveWeight)
         .filter((v): v is number => v !== null);
       return vals.length ? Math.max(...vals) : null;
     }
     case "volume": {
       let sum = 0;
-      for (const r of rows)
-        if (r.reps && r.weight_lb) sum += r.reps * r.weight_lb;
+      for (const r of wRows) {
+        const w = effectiveWeight(r);
+        if (r.reps != null && w != null) sum += r.reps * w;
+      }
       return sum || null;
+    }
+    case "max_reps": {
+      const vals = wRows
+        .map((r) => r.reps)
+        .filter((v): v is number => v != null);
+      return vals.length ? Math.max(...vals) : null;
     }
     case "total_reps":
       return rows.reduce((s, r) => s + (r.reps ?? 0), 0) || null;
+    case "total_sets":
+      return wRows.length || null;
+    case "min_assistance": {
+      const vals = rows
+        .map((r) => r.assistance_level)
+        .filter((v): v is number => v != null);
+      return vals.length ? Math.min(...vals) : null;
+    }
     case "duration":
       return rows.reduce((s, r) => s + (r.duration_min ?? 0), 0) || null;
     case "distance":
@@ -106,36 +211,27 @@ function computeValue(rows: LogEntry[], metric: string): number | null {
   }
 }
 
-// ── Single mini chart ───────────────────────────────────────────────────
+// ── Mini chart ───────────────────────────────────────────────────────────────
 function MiniChart({
   data,
   metric,
-  className = "",
 }: {
   data: { date: string; value: number | null }[];
   metric: Metric;
-  className?: string;
 }) {
   const points = data
     .filter((d) => d.value !== null)
-    .map((d) => ({
-      date: d.date.slice(5), // MM-DD
-      value: d.value,
-    }));
+    .map((d) => ({ date: d.date.slice(5), value: d.value }));
 
   const isEmpty = points.length === 0;
   const singlePoint = points.length === 1;
-
-  // For a single data point give the Y-axis breathing room
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const yDomain: [any, any] = singlePoint
     ? [(v: number) => Math.max(0, v * 0.85), (v: number) => v * 1.15 || 1]
     : ["auto", "auto"];
 
   return (
-    <div
-      className={`bg-surface rounded-xl border border-surface-border p-3 ${className}`}
-    >
+    <div className="bg-surface rounded-xl border border-surface-border p-3">
       <div className="text-xs font-semibold text-slate-300 mb-1">
         {metric.label}
       </div>
@@ -145,15 +241,12 @@ function MiniChart({
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={120}>
-          <LineChart
-            data={points}
-            margin={{ top: 4, right: 4, bottom: 0, left: -16 }}
-          >
+          <LineChart data={points} margin={{ top: 4, right: 4, bottom: 0, left: -16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#232d3f" />
             <XAxis dataKey="date" tick={{ fontSize: 10 }} />
             <YAxis
               tick={{ fontSize: 10 }}
-              width={42}
+              width={48}
               unit={metric.unit ? ` ${metric.unit}` : ""}
               domain={yDomain}
             />
@@ -167,7 +260,7 @@ function MiniChart({
               labelStyle={{ color: "#94a3b8" }}
               itemStyle={{ color: metric.color }}
               formatter={(v: number) => [
-                `${v} ${metric.unit}`.trim(),
+                `${v}${metric.unit ? " " + metric.unit : ""}`,
                 metric.label,
               ]}
             />
@@ -183,8 +276,11 @@ function MiniChart({
           </LineChart>
         </ResponsiveContainer>
       )}
+      {metric.note && (
+        <div className="text-[10px] text-slate-500 mt-1">{metric.note}</div>
+      )}
       {singlePoint && (
-        <div className="text-[10px] text-slate-500 mt-1">
+        <div className="text-[10px] text-slate-500 mt-0.5">
           1 data point · log more sessions to build the trend line.
         </div>
       )}
@@ -192,53 +288,58 @@ function MiniChart({
   );
 }
 
-// ── Main component ──────────────────────────────────────────────────────
+// ── Kind badge styles ────────────────────────────────────────────────────────
+const KIND_BADGE: Record<ExerciseKind, string> = {
+  weighted:     "bg-accent-blue/10 text-accent-blue border-accent-blue/20",
+  bodyweight:   "bg-accent-green/10 text-accent-green border-accent-green/20",
+  assisted:     "bg-accent-purple/10 text-accent-purple border-accent-purple/20",
+  core_timed:   "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  core_reps:    "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  run:          "bg-accent-green/10 text-accent-green border-accent-green/20",
+  conditioning: "bg-accent-orange/10 text-accent-orange border-accent-orange/20",
+  warmup:       "bg-slate-700/30 text-slate-400 border-slate-600",
+  other:        "bg-slate-700/30 text-slate-400 border-slate-600",
+};
+
+const KIND_LABEL: Record<ExerciseKind, string> = {
+  weighted:     "weighted lift",
+  bodyweight:   "bodyweight",
+  assisted:     "assisted machine",
+  core_timed:   "core · timed",
+  core_reps:    "core · reps",
+  run:          "run",
+  conditioning: "conditioning",
+  warmup:       "warm-up",
+  other:        "other",
+};
+
+// ── Main component ───────────────────────────────────────────────────────────
 export default function TrendsClient({ entries }: { entries: LogEntry[] }) {
   const exercises = useMemo(
     () => [...new Set(entries.map((e) => e.exercise).filter(Boolean))].sort(),
     [entries],
   );
 
-  const [exercise, setExercise] = useState(() => {
-    return exercises.includes("Bench Press")
-      ? "Bench Press"
-      : (exercises[0] ?? "");
-  });
+  const [exercise, setExercise] = useState(() =>
+    exercises.includes("Bench Press") ? "Bench Press" : (exercises[0] ?? ""),
+  );
   const [agg, setAgg] = useState<"by_date" | "by_session">("by_date");
 
-  // Determine kind and metrics for selected exercise
-  const { kind, metrics } = useMemo(() => {
-    const exEntries = entries.filter((e) => e.exercise === exercise);
-    const first = exEntries[0];
-    const k = first
-      ? classify(first.activity_type, first.session_type)
-      : "other";
-    return { kind: k, metrics: METRICS_BY_KIND[k] };
+  const { kind, dbMode, metrics } = useMemo(() => {
+    const exRows = entries.filter((e) => e.exercise === exercise);
+    const { kind, dbMode } = classifyExercise(exRows);
+    return { kind, dbMode, metrics: metricsForKind(kind, dbMode) };
   }, [entries, exercise]);
 
-  // Build series data
   const chartData = useMemo(() => {
-    const exEntries = entries.filter((e) => e.exercise === exercise);
-
-    let groups: Map<string, LogEntry[]>;
-    if (agg === "by_date") {
-      groups = new Map();
-      for (const e of exEntries) {
-        const key = e.date;
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key)!.push(e);
-      }
-    } else {
-      groups = new Map();
-      for (const e of exEntries) {
-        const key = `${e.date} · ${e.session_name}`;
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key)!.push(e);
-      }
+    const exRows = entries.filter((e) => e.exercise === exercise);
+    const groups = new Map<string, LogEntry[]>();
+    for (const e of exRows) {
+      const key = agg === "by_date" ? e.date : `${e.date} · ${e.session_name}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(e);
     }
-
     const sortedKeys = [...groups.keys()].sort();
-
     return metrics.map((m) => ({
       metric: m,
       data: sortedKeys.map((key) => ({
@@ -247,16 +348,6 @@ export default function TrendsClient({ entries }: { entries: LogEntry[] }) {
       })),
     }));
   }, [entries, exercise, agg, metrics]);
-
-  const kindBadge: Record<ActivityKind, string> = {
-    lift: "bg-accent-blue/10 text-accent-blue border-accent-blue/20",
-    conditioning:
-      "bg-accent-orange/10 text-accent-orange border-accent-orange/20",
-    run: "bg-accent-green/10 text-accent-green border-accent-green/20",
-    core: "bg-accent-purple/10 text-accent-purple border-accent-purple/20",
-    warmup: "bg-slate-700/30 text-slate-400 border-slate-600",
-    other: "bg-slate-700/30 text-slate-400 border-slate-600",
-  };
 
   return (
     <div>
@@ -268,9 +359,7 @@ export default function TrendsClient({ entries }: { entries: LogEntry[] }) {
           onChange={(e) => setExercise(e.target.value)}
         >
           {exercises.map((ex) => (
-            <option key={ex} value={ex}>
-              {ex}
-            </option>
+            <option key={ex} value={ex}>{ex}</option>
           ))}
         </select>
 
@@ -283,17 +372,13 @@ export default function TrendsClient({ entries }: { entries: LogEntry[] }) {
           <option value="by_session">Group by session</option>
         </select>
 
-        <span
-          className={`flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${kindBadge[kind]}`}
-        >
-          {kind}
+        <span className={`flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${KIND_BADGE[kind]}`}>
+          {KIND_LABEL[kind]}
         </span>
       </div>
 
-      {/* Chart grid */}
-      <div
-        className={`grid gap-3 ${chartData.length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}
-      >
+      {/* Charts */}
+      <div className={`grid gap-3 ${chartData.filter(({ data }) => data.some((d) => d.value !== null)).length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"}`}>
         {chartData
           .filter(({ data }) => data.some((d) => d.value !== null))
           .map(({ metric, data }) => (
@@ -301,10 +386,18 @@ export default function TrendsClient({ entries }: { entries: LogEntry[] }) {
           ))}
       </div>
 
+      {chartData.every(({ data }) => data.every((d) => d.value === null)) && (
+        <div className="text-xs text-slate-500 italic mt-2">
+          No chart data yet for <span className="text-slate-300">{exercise}</span>. Log a session to see trends.
+        </div>
+      )}
+
       <p className="text-xs text-slate-600 mt-3">
-        Charts auto-adapt to the exercise type ({kind}). Log more sessions to
-        build out the trend lines.
+        Charts adapt to exercise type ({KIND_LABEL[kind]}).{" "}
+        {kind === "weighted" && dbMode === "dumbbell" && "Dumbbell weight shown as total (each × 2). "}
+        Log more sessions to build trend lines.
       </p>
     </div>
   );
 }
+
