@@ -146,8 +146,10 @@ function metricsForKind(kind: ExerciseKind, dbMode: DbMode): Metric[] {
       ];
     case "run":
       return [
-        { key: "distance",  label: "Distance (km)",   color: "#60a5fa", unit: "km" },
-        { key: "duration",  label: "Duration (min)",  color: "#34d399", unit: "min" },
+        { key: "distance",   label: "Distance (km)",      color: "#60a5fa", unit: "km" },
+        { key: "duration",   label: "Duration (min)",     color: "#34d399", unit: "min" },
+        { key: "pace_minkm", label: "Avg Pace (min/km)",  color: "#f472b6", unit: "min/km" },
+        { key: "speed_kmh",  label: "Avg Speed (km/h)",  color: "#fb923c", unit: "km/h" },
       ];
     case "conditioning":
       return [
@@ -206,6 +208,18 @@ function computeValue(rows: LogEntry[], metric: string): number | null {
       return rows.reduce((s, r) => s + (r.duration_min ?? 0), 0) || null;
     case "distance":
       return rows.reduce((s, r) => s + (r.distance_km ?? 0), 0) || null;
+    case "pace_minkm": {
+      const dist = rows.reduce((s, r) => s + (r.distance_km ?? 0), 0);
+      const dur  = rows.reduce((s, r) => s + (r.duration_min ?? 0), 0);
+      if (!dist || !dur) return null;
+      return Math.round((dur / dist) * 100) / 100;
+    }
+    case "speed_kmh": {
+      const dist = rows.reduce((s, r) => s + (r.distance_km ?? 0), 0);
+      const dur  = rows.reduce((s, r) => s + (r.duration_min ?? 0), 0);
+      if (!dist || !dur) return null;
+      return Math.round((dist / dur * 60) * 10) / 10;
+    }
     default:
       return null;
   }
