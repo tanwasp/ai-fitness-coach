@@ -329,10 +329,13 @@ const KIND_LABEL: Record<ExerciseKind, string> = {
 
 // ── Main component ───────────────────────────────────────────────────────────
 export default function TrendsClient({ entries }: { entries: LogEntry[] }) {
-  const exercises = useMemo(
-    () => [...new Set(entries.map((e) => e.exercise).filter(Boolean))].sort(),
-    [entries],
-  );
+  const exercises = useMemo(() => {
+    const names = [...new Set(entries.map((e) => e.exercise).filter(Boolean))].sort();
+    return names.filter((name) => {
+      const rows = entries.filter((e) => e.exercise === name);
+      return classifyExercise(rows).kind !== "warmup";
+    });
+  }, [entries]);
 
   const [exercise, setExercise] = useState(() =>
     exercises.includes("Bench Press") ? "Bench Press" : (exercises[0] ?? ""),
